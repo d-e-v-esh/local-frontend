@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useReducer } from "react";
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -20,31 +20,68 @@ import REGISTER from "../graphql/mutations/register";
 
 const theme = createTheme();
 
+const ACTIONS = {
+  EMAIL_ERROR: "emailError",
+  USERNAME_ERROR: "usernameError",
+  PASSWORD_ERROR: "passwordError",
+  RESET_FORM: "resetForm",
+};
+
+const initialState = {
+  isUsernameError: false,
+  isEmailError: false,
+  isPasswordError: false,
+  usernameErrorMessage: "",
+  emailErrorMessage: "",
+  passwordErrorMessage: "",
+};
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case ACTIONS.EMAIL_ERROR:
+      return {
+        ...state,
+        isEmailError: true,
+        emailErrorMessage: action.payload.errorMessage,
+      };
+
+    case ACTIONS.USERNAME_ERROR:
+      return {
+        ...state,
+        isUsernameError: true,
+        usernameErrorMessage: action.payload.errorMessage,
+      };
+
+    case ACTIONS.PASSWORD_ERROR:
+      return {
+        ...state,
+        isPasswordError: true,
+        passwordErrorMessage: action.payload.errorMessage,
+      };
+
+    case ACTIONS.RESET_FORM:
+      return {
+        isUsernameError: false,
+        isEmailError: false,
+        isPasswordError: false,
+        usernameErrorMessage: "",
+        emailErrorMessage: "",
+        passwordErrorMessage: "",
+      };
+  }
+};
+
 const Register = () => {
   const [register, { data, loading, error }] = useMutation(REGISTER);
 
-  const [isUsernameError, setIsUsernameError] = useState(false);
-  const [isEmailError, setIsEmailError] = useState(false);
-  const [isPasswordError, setIsPasswordError] = useState(false);
-  const [usernameErrorMessage, setUsernameErrorMessage] = useState("");
-  const [emailErrorMessage, setEmailErrorMessage] = useState("");
-  const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   const router = useRouter();
 
-  const resetErrorStateValues = () => {
-    setIsUsernameError(false);
-    setIsEmailError(false);
-    setIsPasswordError(false);
-    setUsernameErrorMessage("");
-    setEmailErrorMessage("");
-    setPasswordErrorMessage("");
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
-    resetErrorStateValues();
 
+    dispatch({ type: ACTIONS.RESET_FORM });
     const data = new FormData(event.currentTarget);
 
     const username = data.get("username");
@@ -63,22 +100,28 @@ const Register = () => {
       const errorMapped = toErrorMap(response.data.register.errors);
 
       if (errorMapped.email) {
-        setIsEmailError(true);
-        setEmailErrorMessage(errorMapped.email);
+        dispatch({
+          type: ACTIONS.EMAIL_ERROR,
+          payload: { errorMessage: errorMapped.email },
+        });
       }
 
       if (errorMapped.password) {
-        setIsPasswordError(true);
-        setPasswordErrorMessage(errorMapped.password);
+        dispatch({
+          type: ACTIONS.PASSWORD_ERROR,
+          payload: { errorMessage: errorMapped.password },
+        });
       }
 
       if (errorMapped.username) {
-        setIsUsernameError(true);
-        setUsernameErrorMessage(errorMapped.username);
+        dispatch({
+          type: ACTIONS.USERNAME_ERROR,
+          payload: { errorMessage: errorMapped.username },
+        });
       }
     } else if (response.data?.register.user) {
       console.log("Account Created");
-      resetErrorStateValues();
+      dispatch({ type: ACTIONS.RESET_FORM });
       router.push("/");
     }
   };
@@ -118,8 +161,8 @@ const Register = () => {
                   required
                   fullWidth
                   autoFocus
-                  error={isUsernameError}
-                  helperText={usernameErrorMessage}
+                  error={state.isUsernameError}
+                  helperText={state.usernameErrorMessage}
                 />
               </Grid>
 
@@ -131,8 +174,8 @@ const Register = () => {
                   name="email"
                   required
                   fullWidth
-                  error={isEmailError}
-                  helperText={emailErrorMessage}
+                  error={state.isEmailError}
+                  helperText={state.emailErrorMessage}
                 />
               </Grid>
 
@@ -145,8 +188,8 @@ const Register = () => {
                   type="password"
                   required
                   fullWidth
-                  helperText={passwordErrorMessage}
-                  error={isPasswordError}
+                  error={state.isPasswordError}
+                  helperText={state.passwordErrorMessage}
                 />
               </Grid>
             </Grid>
