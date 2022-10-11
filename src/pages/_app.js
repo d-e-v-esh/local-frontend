@@ -1,9 +1,18 @@
 import "../styles/globals.css";
-import { ApolloClient, InMemoryCache, ApolloProvider } from "@apollo/client";
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  createHttpLink,
+} from "@apollo/client";
+
+const link = createHttpLink({
+  uri: "http://localhost:4000/graphql",
+  credentials: "include",
+});
 
 const client = new ApolloClient({
-  uri: "http://localhost:4000/graphql",
-  // credentials: "include",
+  link,
   cache: new InMemoryCache(),
 });
 
